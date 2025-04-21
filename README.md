@@ -38,4 +38,29 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/pages/building-your-application/deploying) for more details.
+
 # next-map
+
+<!-- Next.js API Routes -->
+
+Next.js 안에서 서버 API를 만들 수 있는 기능
+즉, 백엔드 서버 따로 만들 필요 없이
+pages/api/ 폴더에 파일만 만들면 바로 API가 된다
+req: 브라우저가 보낸 요청 정보 (method, body, query 등)
+res: 서버가 돌려주는 응답 정보 (상태 코드 + JSON 데이터)
+
+<!-- React Query -->
+
+[useQuery]
+fetch() 같은 API 요청을 대신 관리
+자동 캐싱
+
+[자동리패치]
+리로딩/리페치 처리
+로딩, 에러 상태 관리
+서버 상태를 클라이언트에 안전하게 반영
+
+<!-- Axios -->
+
+HTTP 클라이언트 라이브러리
+기본 fetch API 보다 HTTP 요청 및 응답 처리, 설정, 요청 취소등의 부분에서 더 풍부한 기능을 제공

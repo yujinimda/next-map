@@ -1,35 +1,41 @@
-/* glbal kakao */
-import MapTest from '@/components/Map';
-import Script from 'next/script';
+import { useState } from 'react';
+// pages/index.tsx
+import Map from '@/components/Map';
+import Markers from '@/components/Markers';
+import StoreBox from '@/components/StoreBox';
+import { StoreType } from '@/interface';
 
-const { kakao } = window;
+import axios from 'axios';
 
-declare global {
-  interface Window {
-    kakao: any;
-  }
-}
-export default function Home() {
-  const loadKakaoMap = () => {
-    window.kakao.maps.load(() => {
-      const mapContainer = document.getElementById('map');
-      const mapOption = {
-        center: new window.kakao.maps.LatLng(33.450701, 126.570667),
-        level: 3,
-      };
-      new window.kakao.maps.Map(mapContainer, mapOption);
-    });
-  };
+export default function Home({ stores }: { stores: StoreType[] }) {
+  const [map, setMap] = useState(null);
+  const [currentStore, setCurrentStore] = useState(null);
+
+  console.log(setCurrentStore);
   return (
     <>
-      <MapTest />
-      <Script
-        strategy="afterInteractive"
-        type="text/javascript"
-        src="//dapi.kakao.com/v2/maps/sdk.js?appkey=%REACT_APP_KAKAOMAP_KEY%&libraries=services,clusterer"
-        onReady={loadKakaoMap}
-      />
-      <div id="map" className="w-full h-screen"></div>
+      <Map setMap={setMap} />
+      <Markers stores={stores} map={map} setCurrentStore={setCurrentStore} />
+      <StoreBox store={currentStore} setStore={setCurrentStore} />
     </>
   );
+}
+
+// export async function getStaticProps() {
+//   const stores = await fetch(
+//     `${process.env.NEXT_PUBLIC_API_URL}/api/stores`
+//   ).then(res => res.json());
+
+//   return {
+//     props: { stores },
+//     revalidate: 60 * 60,
+//   };
+// }
+
+export async function getServerSideProps() {
+  const stores = await axios(`${process.env.NEXT_PUBLIC_API_URL}/api/stores`);
+
+  return {
+    props: { stores: stores.data },
+  };
 }

@@ -1,30 +1,41 @@
-import React, { useEffect, useState } from 'react';
+/*global kakao*/
+import { Dispatch, SetStateAction } from 'react';
+import Script from 'next/script';
 
-const { kakao } = window;
+declare global {
+  interface Window {
+    kakao: any;
+  }
+}
 
-const MapTest = () => {
-  const [map, setMap] = useState(null);
+const DEFAULT_LAT = 37.497625203;
+const DEFAULT_LNG = 127.03088379;
 
-  //처음 지도 그리기
-  useEffect(() => {
-    const container = document.getElementById('map');
-    const options = { center: new kakao.maps.LatLng(33.450701, 126.570667) };
-    const kakaoMap = new kakao.maps.Map(container, options);
-    setMap(kakaoMap);
-  }, []);
+interface MapProps {
+  setMap: Dispatch<SetStateAction<any>>;
+}
 
+export default function Map({ setMap }: MapProps) {
+  const loadKakaoMap = () => {
+    window.kakao.maps.load(() => {
+      const mapContainer = document.getElementById('map');
+      const mapOption = {
+        center: new window.kakao.maps.LatLng(DEFAULT_LAT, DEFAULT_LNG),
+        level: 3,
+      };
+      const map = new window.kakao.maps.Map(mapContainer, mapOption);
+      setMap(map);
+    });
+  };
   return (
-    <div
-      style={{
-        width: '100%',
-        display: 'inline-block',
-        marginLeft: '5px',
-        marginRight: '5px',
-      }}
-    >
-      <div id="map" style={{ width: '99%', height: '500px' }}></div>
-    </div>
+    <>
+      <Script
+        strategy="afterInteractive"
+        type="text/javascript"
+        src={`//dapi.kakao.com/v2/maps/sdk.js?appkey=${process.env.NEXT_PUBLIC_KAKAOMAP_KEY}&autoload=false`}
+        onReady={loadKakaoMap}
+      />
+      <div id="map" className="w-full h-screen"></div>
+    </>
   );
-};
-
-export default MapTest;
+}
