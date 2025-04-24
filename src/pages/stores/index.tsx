@@ -1,20 +1,17 @@
 'use client';
 
 import Image from 'next/image';
-import { StoreType } from '@/interface';
+//import { StoreType } from '@/interface';
 import axios from 'axios';
 //import { useEffect } from 'react';
 import { useInfiniteQuery } from 'react-query';
-
-interface Props {
-  stores: StoreType[];
-  nextCursor: number | null;
-}
+import { useEffect, useRef } from 'react';
 
 //클라이언트는 /api/stores?limit=20 요청함
 //서버는 20개 보내주고, 마지막 아이템의 id를 nextCursor로 줌
 //클라이언트는 그걸 lastStoreId로 저장하고 다음 요청에 씀
-export default function StoreListPage({ stores, nextCursor }: Props) {
+export default function StoreListPage() {
+  const loadMoreRef = useRef(null);
   // const storesData = () => {
   //   axios
   //     .get(
@@ -86,6 +83,33 @@ export default function StoreListPage({ stores, nextCursor }: Props) {
     }
   );
 
+  //스크롤이 페이지 하단에 도달했을 떄 자동으로 fetchNextPage()를 실행
+  useEffect(() => {
+    //아직 ref가 없거나, 더 불러올 페이지가 없으면 실행하지 않는다.
+    //loadMoreRef.current: 화면에 표시된 로딩용 div가 DOM에 존재하는지 확인
+    //hasNextPage: React Query가 다음 페이지가 있는지 알려줌
+    if (!loadMoreRef.current || !hasNextPage) return;
+
+    //IntersectionObserver: 특정 요소가 뷰포트에 들어오는지 감지하는 브라우저 API
+    //entry.isIntersecting: 요소가 화면에 들어오면 true가 됨
+    //threshold: 1; 요소 전체가 화면에 100% 보여질 때만 트리거됨(스크롤 끝 감지)
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          fetchNextPage(); // 실제 다음 페이지 요청
+        }
+      },
+      { threshold: 1 }
+    );
+
+    //감시를 시작함: loadMoreRef가 가리키는 div가 화면에 들어오면 fetchNextPage() 실행
+    observer.observe(loadMoreRef.current);
+
+    //useEffect 클린업 함수로 컴포넌트가 리렌더링되면 기존 observer 제거
+    //메모리 누수 방지 및 중복 observe 방지
+    return () => observer.disconnect();
+  }, [fetchNextPage, hasNextPage]);
+
   return (
     <div className="px-4 md:max-w-4xl mx-auto py-8">
       <ul role="list" className="divide-y divide-gray-100">
@@ -125,6 +149,9 @@ export default function StoreListPage({ stores, nextCursor }: Props) {
             </li>
           ))}
       </ul>
+
+      {/* 감시용 div */}
+      <div ref={loadMoreRef} className="h-40" />
     </div>
   );
 }

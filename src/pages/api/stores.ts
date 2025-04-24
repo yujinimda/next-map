@@ -37,4 +37,7 @@ export default async function handler(
 
   res.status(200).json({ stores, nextCursor });
   console.log('📌 cursor:', cursor);
+  console.log('stores.length:', stores.length);
+  console.log('last store:', stores[stores.length - 1]);
+  console.log('📌 nextCursor:', nextCursor);
 }
