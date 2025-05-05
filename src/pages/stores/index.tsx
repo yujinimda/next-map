@@ -1,58 +1,61 @@
 'use client';
 
-import Image from 'next/image';
 //import { StoreType } from '@/interface';
 import axios from 'axios';
-//import { useEffect } from 'react';
 import { useInfiniteQuery } from 'react-query';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import StoreListItem from '@/components/StroeListItem';
+import { FixedSizeList } from 'react-window'; // dom 가상화
+import AutoSizer from 'react-virtualized-auto-sizer';
+import SearchFilter from '@/components/SearchFilter';
 
 //클라이언트는 /api/stores?limit=20 요청함
 //서버는 20개 보내주고, 마지막 아이템의 id를 nextCursor로 줌
 //클라이언트는 그걸 lastStoreId로 저장하고 다음 요청에 씀
 export default function StoreListPage() {
-  const loadMoreRef = useRef(null);
-  // const storesData = () => {
-  //   axios
-  //     .get(
-  //       `${process.env.NEXT_PUBLIC_API_URL}/api/stores?limit=20&cursor=${nextCursor}`
-  //     )
-  //     .then(res => console.log(res));
-  // };
+  const listRef = useRef(null);
+  const [search, setSearch] = useState('');
+  const [district, setDistrict] = useState('');
+  const isFilterActive = search !== '' || district !== '';
 
-  // useEffect(() => {
-  //   storesData();
-  // }, []);
+  // const getGoodPlaceList = async ({ pageParam = null }) => {
+  //   const res = await axios.get(
+  //     `${process.env.NEXT_PUBLIC_API_URL}/api/stores`,
+  //     {
+  //       params: {
+  //         limit: 20,
+  //         cursor: pageParam,
+  //         q: search, // 키워드 검색
+  //         district: district, // 지역 필터
+  //       },
+  //     }
+  //   );
 
+  //   return {
+  //     data: res.data.stores, // 배열
+  //     nextCursor: res.data.nextCursor, //다음커서
+  //   };
+  // };ㅌ
+
+  //
   const getGoodPlaceList = async ({ pageParam = null }) => {
-    const params: any = { limit: 20 };
-    if (pageParam !== null && pageParam !== undefined) {
-      params.cursor = pageParam;
-    }
+    const url = isFilterActive
+      ? `${process.env.NEXT_PUBLIC_API_URL}/api/filter` //  필터용 API
+      : `${process.env.NEXT_PUBLIC_API_URL}/api/stores`; //  기본 목록 API
 
-    const res = await axios.get(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/stores`,
-      {
-        params,
-      }
-    );
+    const res = await axios.get(url, {
+      params: {
+        limit: 20,
+        cursor: pageParam,
+        q: search,
+        district,
+      },
+    });
 
     return {
-      data: res.data.stores, // 배열
-      nextCursor: res.data.nextCursor, //다음커서
+      data: res.data.stores,
+      nextCursor: res.data.nextCursor,
     };
-
-    // return axios
-    //   .get(
-    //     `${process.env.NEXT_PUBLIC_API_URL}/api/stores?limit=20&cursor=${nextCursor}`,
-    //     {
-    //       params: {
-    //         limit: 20,
-    //         cursor: pageParam,
-    //       },
-    //     }
-    //   )
-    //   .then(res => res?.data);
   };
 
   const {
@@ -69,99 +72,74 @@ export default function StoreListPage() {
     //isFetchingPreviousPage : fetchPreviousPage 메서드가 이전 페이지를 가져오는 동안 true
     //hasPreviousPage : 가져올 수 있는 이전 페이지가 있을 경우 true
   } = useInfiniteQuery(
-    'goodPlaceList', //data의 이름
-    getGoodPlaceList, //fetch callback, 위 data를 불러올 함수
+    ['goodPlaceList', search, district], //data의 이름 : goodPlaceList , 서치값, 선택한 디렉토리값 넘기기
+    () => getGoodPlaceList(search, district), //fetch callback, 위 data를 불러올 함수
     {
       // 💡 getNextPageParams가 무한스크롤의 핵심이다.
       // getNextPageParms 메서드가 falsy한 값을 반환하면 추가 fetch를 실행하지 않는다.
       // falsy하지 않은 값을 return할 경우 Number로 리턴해야 한다.
       // 위의 fetch callback의 인자로 자종으로 pageParam을 전달.
+      // useInfiniteQuery의 getNextPageParam 시그니처
+      // 첫 번째 인자 lastPage: 가장 마지막으로 받아온 페이지 (필수)
+      // 두 번째 인자 allPage: 지금까지 받아온 모든 페이지 배열 (써야할때 사용)
+      // 언제 allPage를 사용하는데? 총 페이지 수를 제한하고 싶을때, 중복 커서 방지, 전체길이 판단할때(allPage.length)
       getNextPageParam: lastPage => {
-        console.log('📦 lastPage:', lastPage.nextCursor);
+        //console.log('📦 lastPage:', lastPage.nextCursor);
+
+        //nudefined 지워야해?
         return lastPage.nextCursor ?? undefined;
       },
     }
   );
 
-  //스크롤이 페이지 하단에 도달했을 떄 자동으로 fetchNextPage()를 실행
+  const allStores = data?.pages.flatMap(p => p.data) || [];
+
+  //복원
   useEffect(() => {
-    //아직 ref가 없거나, 더 불러올 페이지가 없으면 실행하지 않는다.
-    //loadMoreRef.current: 화면에 표시된 로딩용 div가 DOM에 존재하는지 확인
-    //hasNextPage: React Query가 다음 페이지가 있는지 알려줌
-    if (!loadMoreRef.current || !hasNextPage) return;
-
-    //IntersectionObserver: 특정 요소가 뷰포트에 들어오는지 감지하는 브라우저 API
-    //entry.isIntersecting: 요소가 화면에 들어오면 true가 됨
-    //threshold: 1; 요소 전체가 화면에 100% 보여질 때만 트리거됨(스크롤 끝 감지)
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          fetchNextPage(); // 실제 다음 페이지 요청
-        }
-      },
-      { threshold: 1 }
-    );
-
-    //감시를 시작함: loadMoreRef가 가리키는 div가 화면에 들어오면 fetchNextPage() 실행
-    observer.observe(loadMoreRef.current);
-
-    //useEffect 클린업 함수로 컴포넌트가 리렌더링되면 기존 observer 제거
-    //메모리 누수 방지 및 중복 observe 방지
-    return () => observer.disconnect();
-  }, [fetchNextPage, hasNextPage]);
+    const saved = localStorage.getItem('storeScrollIndex');
+    const index = saved ? parseInt(saved, 10) : 0;
+    requestAnimationFrame(() => {
+      listRef.current?.scrollToItem(index, 'start');
+    });
+  }, [data]);
 
   return (
-    <div className="px-4 md:max-w-4xl mx-auto py-8">
-      <ul role="list" className="divide-y divide-gray-100">
-        {data?.pages
-          .flatMap(p => p.data)
-          .map((store, index) => (
-            <li className="flex justify-between gap-x-6 py-5" key={index}>
-              <div className="flex gap-x-4">
-                <Image
-                  src={
-                    store?.category
-                      ? `/images/markers/${store?.category}.png`
-                      : '/images/markers/default.png'
-                  }
-                  width={48}
-                  height={48}
-                  alt="아이콘 이미지"
-                />
-                <div>
-                  <div className="text-sm font-semibold leading-6 text-gray-900">
-                    {store?.name}
-                  </div>
-                  <div className="mt-1 text-xs truncate font-semibold leading-5 text-gray-500">
-                    {store?.storeType}
-                  </div>
-                </div>
-              </div>
-              <div className="hidden sm:flex sm:flex-col sm:items-end">
-                <div className="text-sm font-semibold leading-6 text-gray-900">
-                  {store?.address}
-                </div>
-                <div className="mt-1 text-xs truncate font-semibold leading-5 text-gray-500">
-                  {store?.phone || '번호없음'} | {store?.foodCertifyName} |{' '}
-                  {store?.category}
-                </div>
-              </div>
-            </li>
-          ))}
-      </ul>
+    <div className="h-[calc(100vh-73px)] w-full overflow-hidden mt-[20px]">
+      <SearchFilter
+        search={search}
+        onSearchChange={setSearch}
+        district={district}
+        onDistrictChange={setDistrict}
+      />
+      <AutoSizer>
+        {({ height, width }) => (
+          <FixedSizeList
+            height={height}
+            width={width}
+            ref={listRef}
+            itemCount={allStores.length}
+            itemSize={100}
+            onItemsRendered={({ visibleStartIndex, visibleStopIndex }) => {
+              localStorage.setItem(
+                'storeScrollIndex',
+                String(visibleStartIndex)
+              );
 
-      {/* 감시용 div */}
-      <div ref={loadMoreRef} className="h-40" />
+              if (
+                hasNextPage &&
+                visibleStopIndex >= allStores.length - 1 &&
+                !isFetchingNextPage
+              ) {
+                fetchNextPage();
+              }
+            }}
+          >
+            {({ index, style }) => (
+              <StoreListItem store={allStores[index]} style={style} />
+            )}
+          </FixedSizeList>
+        )}
+      </AutoSizer>
     </div>
   );
 }
-
-// export async function getServerSideProps() {
-//   //console.log('API_URL:', process.env.NEXT_PUBLIC_API_URL);
-
-//   const stores = await axios(`${process.env.NEXT_PUBLIC_API_URL}/api/stores`);
-
-//   return {
-//     props: { stores: stores.data },
-//   };
-// }

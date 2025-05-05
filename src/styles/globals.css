@@ -28,6 +28,10 @@
   @apply pt-[52px];
 }
 
+html {
+  overflow: hidden;
+}
+
 @media only screen and (max-width: 600px) {
   .navbar--mobile {
     @apply fixed w-full top-[52px] bg-blue-800 text-white h-screen;

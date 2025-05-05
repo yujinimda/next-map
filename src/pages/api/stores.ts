@@ -17,7 +17,7 @@ export default async function handler(
 
   let stores;
 
-  if (cursor) {
+  if (cursor !== null) {
     stores = await prisma.store.findMany({
       take: limit,
       skip: 1,
@@ -36,8 +36,8 @@ export default async function handler(
     stores.length === limit ? stores[stores.length - 1].id : null;
 
   res.status(200).json({ stores, nextCursor });
-  console.log('📌 cursor:', cursor);
-  console.log('stores.length:', stores.length);
-  console.log('last store:', stores[stores.length - 1]);
-  console.log('📌 nextCursor:', nextCursor);
+  // console.log('cursor:', cursor);
+  // console.log('stores.length:', stores.length);
+  // console.log('last store:', stores[stores.length - 1]);
+  // console.log('nextCursor:', nextCursor);
 }
