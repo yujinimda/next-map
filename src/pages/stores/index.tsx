@@ -18,26 +18,6 @@ export default function StoreListPage() {
   const [district, setDistrict] = useState('');
   const isFilterActive = search !== '' || district !== '';
 
-  // const getGoodPlaceList = async ({ pageParam = null }) => {
-  //   const res = await axios.get(
-  //     `${process.env.NEXT_PUBLIC_API_URL}/api/stores`,
-  //     {
-  //       params: {
-  //         limit: 20,
-  //         cursor: pageParam,
-  //         q: search, // 키워드 검색
-  //         district: district, // 지역 필터
-  //       },
-  //     }
-  //   );
-
-  //   return {
-  //     data: res.data.stores, // 배열
-  //     nextCursor: res.data.nextCursor, //다음커서
-  //   };
-  // };ㅌ
-
-  //
   const getGoodPlaceList = async ({ pageParam = null }) => {
     const url = isFilterActive
       ? `${process.env.NEXT_PUBLIC_API_URL}/api/filter` //  필터용 API
